@@ -1,97 +1,160 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# App Name - memers
 
-# Getting Started
+## Operations
+    - user  
+        - CURD operation on message: file(image) | imageText
+        - see profile
+            - avatar | username | email | allPosts
+        - Update Password
+    - admin
+        - see all users or perform CURD operation on User
+        - see all posts or see all posts of user or perform CURD operation on User post
+        - admin dashboard Show analytics
+## Features
+    - CURD operition on posts
+    - follow other users
+    - likes and comments on the post
+    - follow user
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## models 
 
-## Step 1: Start Metro
+### user
+    - username : unique,required,string,lowercase,trim,maxlength:25,index:true
+    - email:unique,required,lowercase,trim,string
+    - avatar:string,default:"guestImage"
+    - password:string
+    - isBlock:boolean
+    - isVerified:boolean
+    - refreshToken:string
+    - verificationToken:sting
+    - role -> [user,admin] default:user
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### post
+    - text:string,maxlength:250
+    - userId:mongoose objectId,ref:"User"
+    - url:string
+    - hashtegs[]
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### friends
+    - userId:mongoose objectId,ref:"User"
+    - friendId:mongoose objectId,ref:"User"
+    - isFriend:boolean
 
-```sh
-# Using npm
-npm start
+### like
+    - userId:mongoose objectId,ref:"User"
+    - postId:mongoose objectId,ref:"Post"
 
-# OR using Yarn
-yarn start
-```
+### comments
+    - userId:mongoose objectId,ref:"User"
+    - postId:mongoose objectId,ref:"Post"
+    - comment:string,maxlength:250words
 
-## Step 2: Build and run your app
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+# Backend
 
-### Android
+## user routes
 
-```sh
-# Using npm
-npm run android
+        api's                |  method   |           description
+    _________________________|___________|___________________________________    
+    api/v1/registerUser      |   Post    |       save user in db
+    api/v1/currentUser       |   Get     |       get current user
+    api/v1/login             |   Post    |       create user session 
+    api/v1/logout            |   Post    |       remove user session 
+    api/v1/update            |   Patch   |       update user password or avatar
+    api/v1/users             |   Get     |       get all users
+    api/v1/blockUser         |   Patch   |       toggle block user
+    api/v1/deleteUser        |   DELETE  |       delete user
+    api/v1/getUserPost       |   Get     |       get current user post
+    api/v1/userVerification  |   Post    |       check otp and marks as isVerfied:True
 
-# OR using Yarn
-yarn android
-```
 
-### iOS
+## post routes
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+        api's                |  method   |           description
+    _________________________|___________|___________________________________    
+    api/v1/createPost        |   Post    |       save post in db
+    api/v1/getAllPosts       |   Get     |       get all post
+    api/v1/updatePost        |   Patch   |       update text 
+    api/v1/deletePost        |   DELETE  |       delete post
+    
+## friends
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+        api's                |  method   |           description
+    _________________________|___________|___________________________________    
+    api/v1/createFollow      |   Post    |       create followers
+    api/v1/getFollowers      |   Get     |       all document that have friendId === currentUser
+    api/v1/getFollowing      |   Get     |       all document that have userId === currebtUser
+    api/v1/getfriends        |   Get     |       isFreind === true
+    api/v1/FollowBack        |   Patch   |       update isFriend:true
 
-```sh
-bundle install
-```
+## likes
 
-Then, and every time you update your native dependencies, run:
+        api's                |  method   |           description
+    _________________________|___________|___________________________________    
+    api/v1/createLike        |   Post    |       save Like in db
+    api/v1/getAllLikes       |   Get     |       get all likes
+    api/v1/toggleLike        |   Patch   |       toggleLike 
+    api/v1/deleteLike        |   DELETE  |       delete Like
 
-```sh
-bundle exec pod install
-```
+## comments
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+        api's                   |  method   |           description
+    ____________________________|___________|___________________________________    
+    api/v1/createComment        |   Post    |       save comment in db
+    api/v1/getAllComment        |   Get     |       get all comment
+    api/v1/updateComment        |   Patch   |       update comment
+    api/v1/deleteCommnet        |   DELETE  |       delete comment
 
-```sh
-# Using npm
-npm run ios
 
-# OR using Yarn
-yarn ios
-```
+## api's algo
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+### user
+    - api/v1/registerUser 
+        - public api
+        - save user as role user and when email is Equal to the Proccess.env.ADMIN_EMIAL than role become admin.
+        - save user as isVerified False.
+        - send a email to the user that have a verificationToken with a button that redirect user to the userVerification route and also save verificationToken in user document.
+              e.g. verificationToken = bcrypt.hash(email+username)
+                   save user isverified:false
+                   sendVerificationEmail(verificationToken,email) \\ import from helper file 
+        - return response user is create| verify user before login
+    api/v1/currentUser  
+        - private api
+    api/v1/login   
+        - public api
+        - check user isverfied or not if not send a response verification has required 
+    api/v1/logout       
+        - private api
+    api/v1/update
+        -private api       
+    api/v1/users
+        - admin route (role:admin)        
+    api/v1/blockUser    
+        - admin route (role:admin)        
+    api/v1/deleteUser   
+        - admin route (role:admin)        
+    api/v1/getUserPost
+        - private route
+        - get all post that have userId === currentUser._id
+    api/v1/userVerification
+        - public route 
+        - find user by email
+        - if user exist than isPasswordCorrect = await bcrypt.compare(user.varificationToken,email+user.username)
+        - if isPassword is true than update user and save user as isVerified:true
+### posts
+    api/v1/createPost
+        - from text get all word that start from the #
+        - append all that type of words in hashteg array
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+### friends
+    api/v1/createFollow 
+        - private route
+        - userId:currentUserId and friendId : another UserId
+    api/v1/getFollowers 
+        - all document that have friendId:currentUserId
+    api/v1/getFollowing 
+        - all documnet that have userId:currentUserId
+    api/v1/getfriends
+        - all documnet that have isFriend:true   
+    api/v1/FollowBack
+        - update isFriend:true

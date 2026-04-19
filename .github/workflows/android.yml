@@ -1,0 +1,74 @@
+name: Build React Native APK (Latest)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    env:
+      GRADLE_OPTS: -Xmx3g
+
+    steps:
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node (LATEST SAFE)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Setup Java (LATEST)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      # 5. Setup Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 6. Accept licenses (important)
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses
+
+      # 7. Make gradlew executable
+      - name: Grant execute permission
+        run: chmod +x android/gradlew
+
+      # 8. Bundle JS manually (fix Metro issues)
+      - name: Bundle React Native JS
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res/
+
+      # 9. Build APK
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      # 10. Upload APK (LATEST VERSION)
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
