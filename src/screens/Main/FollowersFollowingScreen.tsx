@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { ChevronLeft } from 'lucide-react-native';
@@ -16,9 +17,10 @@ const FollowersFollowingScreen = ({ route, navigation }: any) => {
             const endpoint = type === 'followers' ? '/friends/getFollowers' : '/friends/getFollowing';
             const response = await api.get(`${endpoint}?userId=${userId}`);
             
-            // Map data to get the user objects depending on type
+            // Map data to get the user objects and their follow status
             const mappedUsers = response.data.data.map((item: any) => {
-                return type === 'followers' ? item.userId : item.friendId;
+                const userObj = type === 'followers' ? item.userId : item.friendId;
+                return { ...userObj, isFollowing: item.isFollowing };
             });
             
             setUsers(mappedUsers);
@@ -33,20 +35,50 @@ const FollowersFollowingScreen = ({ route, navigation }: any) => {
         fetchUsers();
     }, [userId, type]);
 
+    const handleFollowToggle = async (targetUser: any) => {
+        try {
+            const endpoint = targetUser.isFollowing ? '/friends/unfollow' : '/friends/createFollow';
+            const response = await api.post(endpoint, { friendId: targetUser._id });
+            
+            if (response.data.success) {
+                setUsers(prev => prev.map(u => 
+                    u._id === targetUser._id 
+                        ? { ...u, isFollowing: !u.isFollowing } 
+                        : u
+                ));
+            }
+        } catch (error) {
+            console.error('List follow toggle error:', error);
+        }
+    };
+
     const renderUserItem = ({ item }: { item: any }) => (
-        <TouchableOpacity 
-            style={styles.userItem} 
-            onPress={() => {
-                if (item?._id === currentUser?._id) {
-                    navigation.navigate('Profile');
-                } else {
-                    navigation.push('UserProfile', { userId: item?._id });
-                }
-            }}
-        >
-            <Image source={{ uri: item?.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
-            <Text style={styles.username}>{item?.username}</Text>
-        </TouchableOpacity>
+        <View style={styles.userRow}>
+            <TouchableOpacity 
+                style={styles.userItem} 
+                onPress={() => {
+                    if (item?._id === currentUser?._id) {
+                        navigation.navigate('Profile');
+                    } else {
+                        navigation.push('UserProfile', { userId: item?._id });
+                    }
+                }}
+            >
+                <Image source={{ uri: item?.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
+                <Text style={styles.username}>{item?.username}</Text>
+            </TouchableOpacity>
+
+            {item?._id !== currentUser?._id && (
+                <TouchableOpacity 
+                    style={[styles.smallFollowButton, item?.isFollowing && styles.smallUnfollowButton]}
+                    onPress={() => handleFollowToggle(item)}
+                >
+                    <Text style={[styles.smallFollowText, item?.isFollowing && styles.smallUnfollowText]}>
+                        {item?.isFollowing ? 'Following' : (type === 'followers' ? 'Follow Back' : 'Follow')}
+                    </Text>
+                </TouchableOpacity>
+            )}
+        </View>
     );
 
     return (
@@ -108,10 +140,16 @@ const styles = StyleSheet.create({
     listContent: {
         padding: Spacing.md,
     },
+    userRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.md,
+    },
     userItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        flex: 1,
     },
     avatar: {
         width: 50,
@@ -123,6 +161,27 @@ const styles = StyleSheet.create({
     username: {
         fontSize: 16,
         fontWeight: '600',
+        color: Colors.text,
+    },
+    smallFollowButton: {
+        backgroundColor: Colors.primary,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 6,
+        borderRadius: 6,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    smallUnfollowButton: {
+        backgroundColor: Colors.white,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    smallFollowText: {
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    smallUnfollowText: {
         color: Colors.text,
     },
     emptyContainer: {

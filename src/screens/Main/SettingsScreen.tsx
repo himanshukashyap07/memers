@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-import { ChevronLeft, Camera, Lock, User } from 'lucide-react-native';
+import { ChevronLeft, Camera, Lock, User, LogOut } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../../services/api';
 
 const SettingsScreen = ({ navigation }: any) => {
-    const { user, login } = useAuth();
+    const { user, login, logout } = useAuth();
     const [loading, setLoading] = useState(false);
     
     // Password state
@@ -85,6 +86,23 @@ const SettingsScreen = ({ navigation }: any) => {
         }
     };
 
+    const handleLogout = async () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to log out?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Logout', onPress: async () => {
+                    try {
+                        await logout();
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                }, style: 'destructive' }
+            ]
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -160,10 +178,10 @@ const SettingsScreen = ({ navigation }: any) => {
                 {/* Account Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Account</Text>
-                    <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'Feature in development')}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                         <View style={styles.menuItemLeft}>
-                            <User size={20} color={Colors.textSecondary} />
-                            <Text style={styles.menuItemText}>Edit Profile Details</Text>
+                            <LogOut size={20} color={Colors.error} />
+                            <Text style={[styles.menuItemText, { color: Colors.error }]}>Log Out</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

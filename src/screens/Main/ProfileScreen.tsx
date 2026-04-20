@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
-import { Settings, LogOut, Grid, User as UserIcon } from 'lucide-react-native';
+import { Settings, Grid, User as UserIcon, LayoutDashboard } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileScreen = ({ navigation }: any) => {
@@ -31,15 +32,6 @@ const ProfileScreen = ({ navigation }: any) => {
             fetchProfile();
         }, [])
     );
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-            Alert.alert('Logged out', 'You have been logged out.');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-    };
 
     const handlePostPress = (post: any) => {
         Alert.alert(
@@ -96,11 +88,13 @@ const ProfileScreen = ({ navigation }: any) => {
                 <View style={styles.headerTop}>
                     <Text style={styles.profileUsername}>{user?.username}</Text>
                     <View style={styles.headerActions}>
+                        {user?.role === 'admin' && (
+                            <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.navigate('Admin')}>
+                                <LayoutDashboard size={24} color={Colors.primary} />
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.navigate('Settings')}>
                             <Settings size={24} color={Colors.text} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.headerIcon} onPress={handleLogout}>
-                            <LogOut size={24} color={Colors.error} />
                         </TouchableOpacity>
                     </View>
                 </View>

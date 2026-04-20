@@ -10,7 +10,7 @@ const App = () => {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
-          <StatusBar barStyle="dark-content" />
+          <StatusBar barStyle="dark-content" translucent={true} backgroundColor="transparent" />
           <Navigation />
         </AuthProvider>
       </GestureHandlerRootView>

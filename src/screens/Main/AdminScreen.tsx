@@ -1,43 +1,62 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert, Switch, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
-import { Trash2, ShieldAlert, User as UserIcon, CheckCircle, XCircle } from 'lucide-react-native';
+import { Trash2, UserMinus, UserCheck, LayoutDashboard } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AdminBottomBar from '../../components/AdminBottomBar';
 
-const AdminScreen = () => {
-    const [users, setUsers] = useState<any[]>([]);
+const AdminScreen = ({ navigation }: any) => {
+    const insets = useSafeAreaInsets();
+    const [activeTab, setActiveTab] = useState('users');
+    const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const fetchAllUsers = async () => {
+    const fetchData = async () => {
+        setLoading(true);
         try {
-            const response = await api.get('/user/users');
-            setUsers(response.data.data);
+            let endpoint = '';
+            switch (activeTab) {
+                case 'users': endpoint = '/user/users'; break;
+                case 'posts': endpoint = '/post/getAllPosts'; break;
+                case 'comments': endpoint = '/comments/admin/all'; break;
+                case 'likes': endpoint = '/likes/admin/all'; break;
+                case 'notifications': endpoint = '/notifications/all'; break; 
+                case 'followings': 
+                case 'followers':
+                case 'followbacks': endpoint = '/friends/admin/all'; break;
+                default: endpoint = '';
+            }
+
+            if (endpoint) {
+                const response = await api.get(endpoint);
+                setData(response.data.data);
+            } else {
+                setData([]);
+            }
         } catch (error) {
-            console.error('Fetch all users error:', error);
+            console.error(`Admin fetch ${activeTab} error:`, error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
     useEffect(() => {
-        fetchAllUsers();
-    }, []);
+        fetchData();
+    }, [activeTab]);
 
-    const toggleBlock = async (userId: string, currentStatus: boolean) => {
-        try {
-            await api.patch('/user/blockUser', { userId });
-            setUsers(prevUsers => prevUsers.map((u: any) => 
-                u._id === userId ? { ...u, isBlock: !currentStatus } : u
-            ));
-        } catch (error) {
-            Alert.alert('Error', 'Failed to update user status');
-        }
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchData();
     };
 
-    const handleDelete = async (userId: string) => {
+    const handleDelete = async (id: string, type: string) => {
         Alert.alert(
-            'Delete User',
-            'Are you sure you want to delete this user? This action cannot be undone.',
+            `Delete ${type}`,
+            `Are you sure you want to delete this ${type}?`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 { 
@@ -45,10 +64,19 @@ const AdminScreen = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await api.delete('/user/deleteUser', { data: { userId } });
-                            setUsers(prevUsers => prevUsers.filter((u: any) => u._id !== userId));
+                            let endpoint = '';
+                            let body = {};
+                            switch(type) {
+                                case 'post': endpoint = '/post/deletePost'; body = { postId: id }; break;
+                                case 'user': endpoint = '/user/deleteUser'; body = { userId: id }; break;
+                                case 'comment': endpoint = '/comments/deleteComment'; body = { commentId: id }; break;
+                            }
+                            if (endpoint) {
+                                await api.delete(endpoint, { data: body });
+                                setData(prev => prev.filter(item => item._id !== id));
+                            }
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to delete user');
+                            Alert.alert('Error', 'Failed to delete item');
                         }
                     }
                 }
@@ -56,243 +84,199 @@ const AdminScreen = () => {
         );
     };
 
-    const renderUserItem = ({ item }: { item: any }) => (
-        <View style={styles.userCard}>
-            <View style={styles.userMainInfo}>
-                <Image 
-                    source={{ uri: item.avatar || 'https://via.placeholder.com/50' }} 
-                    style={styles.avatar} 
-                />
-                <View style={styles.textDetails}>
-                    <View style={styles.nameRow}>
-                        <Text style={styles.username}>{item.username}</Text>
-                        {item.role === 'admin' && (
-                            <View style={styles.adminBadge}>
-                                <Text style={styles.adminBadgeText}>Admin</Text>
-                            </View>
-                        )}
-                    </View>
-                    <Text style={styles.email} numberOfLines={1}>{item.email}</Text>
-                    <View style={styles.itemFooter}>
-                        <View style={styles.statusBadge}>
-                            {item.isVerified ? (
-                                <CheckCircle size={12} color={Colors.success} />
-                            ) : (
-                                <XCircle size={12} color={Colors.error} />
-                            )}
-                            <Text style={[styles.statusText, item.isVerified ? styles.verifiedText : styles.unverifiedText]}>
-                                {item.isVerified ? 'Verified' : 'Unverified'}
-                            </Text>
-                        </View>
-                        {item.isBlock && (
-                            <View style={[styles.statusBadge, styles.blockedBadge]}>
-                                <ShieldAlert size={12} color={Colors.error} />
-                                <Text style={styles.blockedText}>Blocked</Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-            </View>
-            
-            {item.role !== 'admin' && (
-                <View style={styles.actions}>
-                    <TouchableOpacity 
-                        style={[styles.actionBtn, item.isBlock ? styles.unblockBtn : styles.blockBtn]} 
-                        onPress={() => toggleBlock(item._id, item.isBlock)}
-                    >
-                        <ShieldAlert size={18} color={item.isBlock ? Colors.success : Colors.error} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item._id)}>
-                        <Trash2 size={18} color={Colors.textSecondary} />
-                    </TouchableOpacity>
-                </View>
-            )}
-        </View>
-    );
+    const handleToggleBlock = async (user: any) => {
+        try {
+            const response = await api.patch('/user/blockUser', { userId: user._id });
+            if (response.data.success) {
+                setData(prev => prev.map(u => u._id === user._id ? { ...u, isBlock: !u.isBlock } : u));
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to toggle block status');
+        }
+    };
 
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-        );
-    }
+    const renderItem = ({ item }: { item: any }) => {
+        switch (activeTab) {
+            case 'users':
+                return (
+                    <View style={styles.itemRow}>
+                        <View style={styles.itemMain}>
+                            <Image source={{ uri: item.avatar || 'https://via.placeholder.com/50' }} style={styles.itemAvatar} />
+                            <View>
+                                <Text style={styles.itemTitle}>{item.username}</Text>
+                                <Text style={styles.itemSub}>{item.email}</Text>
+                            </View>
+                        </View>
+                        <View style={styles.actions}>
+                            <TouchableOpacity onPress={() => handleToggleBlock(item)} style={styles.actionBtn}>
+                                {item.isBlock ? <UserCheck size={20} color={Colors.success} /> : <UserMinus size={20} color={Colors.error} />}
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleDelete(item._id, 'user')} style={styles.actionBtn}>
+                                <Trash2 size={20} color={Colors.error} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                );
+            case 'posts':
+                return (
+                    <View style={styles.itemRow}>
+                        <View style={styles.itemMain}>
+                            {item.url && <Image source={{ uri: item.url }} style={styles.postThumb} />}
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.itemTitle} numberOfLines={1}>{item.text || 'No caption'}</Text>
+                                <Text style={styles.itemSub}>by {item.userId?.username}</Text>
+                            </View>
+                        </View>
+                        <TouchableOpacity onPress={() => handleDelete(item._id, 'post')} style={styles.actionBtn}>
+                            <Trash2 size={20} color={Colors.error} />
+                        </TouchableOpacity>
+                    </View>
+                );
+            case 'comments':
+                return (
+                    <View style={styles.itemRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.itemTitle}>{item.comment}</Text>
+                            <Text style={styles.itemSub}>by {item.userId?.username} on {item.postId?.text || 'Post'}</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => handleDelete(item._id, 'comment')} style={styles.actionBtn}>
+                            <Trash2 size={20} color={Colors.error} />
+                        </TouchableOpacity>
+                    </View>
+                );
+            case 'likes':
+                return (
+                    <View style={styles.itemRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.itemTitle}>{item.userId?.username} liked</Text>
+                            <Text style={styles.itemSub}>{item.postId?.text || 'Meme'}</Text>
+                        </View>
+                    </View>
+                );
+            case 'followings':
+            case 'followers':
+            case 'followbacks':
+                return (
+                    <View style={styles.itemRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.itemTitle}>{item.userId?.username} follows</Text>
+                            <Text style={styles.itemSub}>{item.friendId?.username}</Text>
+                        </View>
+                    </View>
+                );
+            default:
+                return (
+                    <View style={styles.itemRow}>
+                        <Text style={styles.itemSub}>ID: {item._id}</Text>
+                    </View>
+                );
+        }
+    };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>User Management</Text>
-                <View style={styles.statChip}>
-                    <Text style={styles.statChipText}>Total: {users.length}</Text>
-                </View>
+                <LayoutDashboard size={24} color={Colors.primary} style={{ marginRight: 10 }} />
+                <Text style={styles.headerTitle}>Admin Panel</Text>
             </View>
-            <FlatList
-                data={users}
-                renderItem={renderUserItem}
-                keyExtractor={(item) => item._id}
-                contentContainerStyle={styles.list}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <UserIcon size={48} color={Colors.border} />
-                        <Text style={styles.emptyText}>No users to manage.</Text>
-                    </View>
-                }
-            />
-        </SafeAreaView>
+
+            {loading ? (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : (
+                <FlatList
+                    data={data}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item._id}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.centerContainer}>
+                            <Text style={styles.emptyText}>No data found for {activeTab}</Text>
+                        </View>
+                    }
+                />
+            )}
+
+            <AdminBottomBar activeTab={activeTab} onTabPress={setActiveTab} />
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: Colors.white,
     },
     header: {
-        backgroundColor: Colors.white,
-        padding: Spacing.md,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        padding: Spacing.md,
         borderBottomWidth: 1,
         borderBottomColor: Colors.border,
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: '900',
-        color: Colors.primary,
-    },
-    statChip: {
-        backgroundColor: Colors.primary + '20',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    statChipText: {
-        color: Colors.primary,
-        fontWeight: 'bold',
-        fontSize: 12,
-    },
-    list: {
-        padding: Spacing.md,
-    },
-    userCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: Spacing.md,
-        marginBottom: Spacing.md,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        // Shadow for premium feel
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    userMainInfo: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatar: {
-        width: 54,
-        height: 54,
-        borderRadius: 27,
-        marginRight: Spacing.md,
-        backgroundColor: Colors.background,
-    },
-    textDetails: {
-        flex: 1,
-    },
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 2,
-    },
-    username: {
-        fontSize: 16,
         fontWeight: 'bold',
         color: Colors.text,
-        marginRight: 6,
     },
-    adminBadge: {
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    adminBadgeText: {
-        color: Colors.white,
-        fontSize: 10,
-        fontWeight: 'bold',
+    listContent: {
+        padding: Spacing.md,
+        paddingBottom: 100, // For the floating bar
     },
-    email: {
-        fontSize: 13,
-        color: Colors.textSecondary,
-        marginBottom: 6,
-    },
-    itemFooter: {
-        flexDirection: 'row',
-    },
-    statusBadge: {
+    itemRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 10,
+        justifyContent: 'space-between',
+        padding: Spacing.md,
+        backgroundColor: Colors.background,
+        borderRadius: 12,
+        marginBottom: Spacing.sm,
     },
-    statusText: {
-        fontSize: 11,
-        marginLeft: 4,
-        fontWeight: '600',
+    itemMain: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    verifiedText: {
-        color: Colors.success,
+    itemAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: Spacing.md,
     },
-    unverifiedText: {
-        color: Colors.error,
-    },
-    blockedBadge: {
-        backgroundColor: Colors.error + '10',
-        paddingHorizontal: 6,
-        paddingVertical: 1,
+    postThumb: {
+        width: 40,
+        height: 40,
         borderRadius: 4,
+        marginRight: Spacing.md,
     },
-    blockedText: {
-        color: Colors.error,
-        fontSize: 11,
-        marginLeft: 4,
-        fontWeight: '600',
+    itemTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.text,
+    },
+    itemSub: {
+        fontSize: 12,
+        color: Colors.textSecondary,
     },
     actions: {
         flexDirection: 'row',
     },
     actionBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: Colors.background,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: Spacing.sm,
-    },
-    blockBtn: {
-        backgroundColor: Colors.error + '10',
-    },
-    unblockBtn: {
-        backgroundColor: Colors.success + '10',
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        marginTop: 100,
+        padding: 5,
+        marginLeft: 10,
     },
     emptyText: {
         color: Colors.textSecondary,
-        marginTop: Spacing.md,
+        fontSize: 16,
     },
 });
 

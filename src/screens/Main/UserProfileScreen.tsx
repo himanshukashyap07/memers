@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { ChevronLeft, Grid, User as UserIcon, UserPlus, UserMinus } from 'lucide-react-native';
@@ -122,7 +123,7 @@ const UserProfileScreen = ({ route, navigation }: any) => {
                                 <UserPlus size={18} color={Colors.white} style={{ marginRight: 8 }} />
                             )}
                             <Text style={[styles.followButtonText, user?.isFollowing && styles.unfollowButtonText]}>
-                                {user?.isFollowing ? 'Unfollow' : 'Follow'}
+                                {user?.isFollowing ? 'Unfollow' : (user?.followsMe ? 'Follow Back' : 'Follow')}
                             </Text>
                         </>
                     )}

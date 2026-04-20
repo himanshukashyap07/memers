@@ -4,8 +4,8 @@ import FeedScreen from '../screens/Main/FeedScreen';
 import CreatePostScreen from '../screens/Main/CreatePostScreen';
 import ProfileScreen from '../screens/Main/ProfileScreen';
 import SearchScreen from '../screens/Main/SearchScreen';
-import AdminScreen from '../screens/Main/AdminScreen';
-import { Home, PlusSquare, Search, User, ShieldCheck } from 'lucide-react-native';
+import NotificationsScreen from '../screens/Main/NotificationsScreen';
+import { Home, PlusSquare, Search, User, Bell } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -42,21 +42,19 @@ const MainTabs = ({ userRole }: { userRole?: string }) => {
                 }} 
             />
             <Tab.Screen 
+                name="Notifications" 
+                component={NotificationsScreen} 
+                options={{ 
+                    tabBarIcon: ({ color, size }) => <Bell color={color} size={size} /> 
+                }} 
+            />
+            <Tab.Screen 
                 name="Profile" 
                 component={ProfileScreen} 
                 options={{ 
                     tabBarIcon: ({ color, size }) => <User color={color} size={size} /> 
                 }} 
             />
-            {userRole === 'admin' && (
-                <Tab.Screen 
-                    name="Admin" 
-                    component={AdminScreen} 
-                    options={{ 
-                        tabBarIcon: ({ color, size }) => <ShieldCheck color={color} size={size} /> 
-                    }} 
-                />
-            )}
         </Tab.Navigator>
     );
 };
