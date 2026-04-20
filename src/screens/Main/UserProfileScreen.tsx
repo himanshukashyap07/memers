@@ -1,83 +1,59 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
-import { Settings, LogOut, Grid, User as UserIcon } from 'lucide-react-native';
-import { useAuth } from '../../context/AuthContext';
+import { ChevronLeft, Grid, User as UserIcon, UserPlus, UserMinus } from 'lucide-react-native';
 
-const ProfileScreen = ({ navigation }: any) => {
-    const { logout } = useAuth();
+const UserProfileScreen = ({ route, navigation }: any) => {
+    const { userId } = route.params;
     const [user, setUser] = useState<any>(null);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [followLoading, setFollowLoading] = useState(false);
 
-    const fetchProfile = async () => {
+    const fetchUserProfile = async () => {
         try {
-            const userRes = await api.get('/user/currentUser');
+            const userRes = await api.get(`/user/getUserProfile?userId=${userId}`);
             setUser(userRes.data.data);
             
-            const postsRes = await api.get('/post/getUserPost');
+            const postsRes = await api.get(`/post/getUserPost?userId=${userId}`);
             setPosts(postsRes.data.data);
         } catch (error) {
-            console.error('Fetch profile error:', error);
+            console.error('Fetch user profile error:', error);
+            Alert.alert('Error', 'Failed to load user profile');
         } finally {
             setLoading(false);
         }
     };
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchProfile();
-        }, [])
-    );
+    useEffect(() => {
+        fetchUserProfile();
+    }, [userId]);
 
-    const handleLogout = async () => {
+    const handleFollowToggle = async () => {
+        if (!user) return;
+        setFollowLoading(true);
         try {
-            await logout();
-            Alert.alert('Logged out', 'You have been logged out.');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-    };
-
-    const handlePostPress = (post: any) => {
-        Alert.alert(
-            "Manage Post",
-            "What would you like to do?",
-            [
-                { text: "Edit", onPress: () => navigation.navigate("EditPost", { post }) },
-                { text: "Delete", onPress: () => confirmDelete(post._id), style: "destructive" },
-                { text: "Cancel", style: "cancel" }
-            ]
-        );
-    };
-
-    const confirmDelete = (postId: string) => {
-        Alert.alert(
-            "Delete Post",
-            "Are you sure you want to delete this meme? This action cannot be undone.",
-            [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", onPress: () => handleDelete(postId), style: "destructive" }
-            ]
-        );
-    };
-
-    const handleDelete = async (postId: string) => {
-        try {
-            const response = await api.delete("/post/deletePost", { data: { postId } });
+            const endpoint = user.isFollowing ? '/friends/unfollow' : '/friends/createFollow';
+            const response = await api.post(endpoint, { friendId: userId });
+            
             if (response.data.success) {
-                setPosts(prev => prev.filter((p: any) => p._id !== postId));
+                setUser({
+                    ...user,
+                    isFollowing: !user.isFollowing,
+                    followersCount: user.isFollowing ? user.followersCount - 1 : user.followersCount + 1
+                });
             }
-        } catch (error) {
-            console.error("Delete post error:", error);
-            Alert.alert("Error", "Failed to delete post");
+        } catch (error: any) {
+            console.error('Follow toggle error:', error);
+            Alert.alert('Error', error.response?.data?.message || 'Action failed');
+        } finally {
+            setFollowLoading(false);
         }
     };
 
     const renderPostItem = ({ item }: { item: any }) => (
-        <TouchableOpacity style={styles.gridItem} onPress={() => handlePostPress(item)}>
+        <TouchableOpacity style={styles.gridItem}>
             <Image source={{ uri: item.url }} style={styles.gridImage} />
         </TouchableOpacity>
     );
@@ -93,18 +69,14 @@ const ProfileScreen = ({ navigation }: any) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <Text style={styles.profileUsername}>{user?.username}</Text>
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.navigate('Settings')}>
-                            <Settings size={24} color={Colors.text} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.headerIcon} onPress={handleLogout}>
-                            <LogOut size={24} color={Colors.error} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <ChevronLeft size={28} color={Colors.text} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>{user?.username}</Text>
+                <View style={{ width: 28 }} />
+            </View>
 
+            <View style={styles.profileHeader}>
                 <View style={styles.profileInfo}>
                     <Image 
                         source={{ uri: user?.avatar === 'guestImage' ? 'https://via.placeholder.com/100' : user?.avatar }} 
@@ -112,40 +84,61 @@ const ProfileScreen = ({ navigation }: any) => {
                     />
                     <View style={styles.statsContainer}>
                         <View style={styles.statBox}>
-                            <Text style={styles.statCount}>{posts.length}</Text>
+                            <Text style={styles.statCount}>{user?.postsCount || 0}</Text>
                             <Text style={styles.statLabel}>Posts</Text>
                         </View>
                         <TouchableOpacity 
-                            style={styles.statBox} 
-                            onPress={() => navigation.navigate('FollowersFollowing', { userId: user?._id, type: 'followers' })}
+                            style={styles.statBox}
+                            onPress={() => navigation.navigate('FollowersFollowing', { userId, type: 'followers' })}
                         >
                             <Text style={styles.statCount}>{user?.followersCount || 0}</Text>
                             <Text style={styles.statLabel}>Followers</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
                             style={styles.statBox}
-                            onPress={() => navigation.navigate('FollowersFollowing', { userId: user?._id, type: 'following' })}
+                            onPress={() => navigation.navigate('FollowersFollowing', { userId, type: 'following' })}
                         >
                             <Text style={styles.statCount}>{user?.followingCount || 0}</Text>
                             <Text style={styles.statLabel}>Following</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                <TouchableOpacity 
+                    style={[
+                        styles.followButton, 
+                        user?.isFollowing && styles.unfollowButton
+                    ]} 
+                    onPress={handleFollowToggle}
+                    disabled={followLoading}
+                >
+                    {followLoading ? (
+                        <ActivityIndicator size="small" color={user?.isFollowing ? Colors.text : Colors.white} />
+                    ) : (
+                        <>
+                            {user?.isFollowing ? (
+                                <UserMinus size={18} color={Colors.text} style={{ marginRight: 8 }} />
+                            ) : (
+                                <UserPlus size={18} color={Colors.white} style={{ marginRight: 8 }} />
+                            )}
+                            <Text style={[styles.followButtonText, user?.isFollowing && styles.unfollowButtonText]}>
+                                {user?.isFollowing ? 'Unfollow' : 'Follow'}
+                            </Text>
+                        </>
+                    )}
+                </TouchableOpacity>
             </View>
 
             <View style={styles.tabBar}>
                 <TouchableOpacity style={styles.tabItem}>
                     <Grid size={24} color={Colors.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.tabItem}>
-                    <UserIcon size={24} color={Colors.textSecondary} />
-                </TouchableOpacity>
             </View>
 
             <FlatList
                 data={posts}
                 renderItem={renderPostItem}
-                keyExtractor={(item) => item._id}
+                keyExtractor={(item: any) => item._id}
                 numColumns={3}
                 contentContainerStyle={styles.postGrid}
                 ListEmptyComponent={
@@ -169,24 +162,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        padding: Spacing.md,
-    },
-    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.lg,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
     },
-    profileUsername: {
-        fontSize: 20,
+    headerTitle: {
+        fontSize: 18,
         fontWeight: 'bold',
         color: Colors.text,
     },
-    headerActions: {
-        flexDirection: 'row',
-    },
-    headerIcon: {
-        marginLeft: Spacing.md,
+    profileHeader: {
+        padding: Spacing.md,
     },
     profileInfo: {
         flexDirection: 'row',
@@ -216,6 +206,28 @@ const styles = StyleSheet.create({
     statLabel: {
         fontSize: 12,
         color: Colors.textSecondary,
+    },
+    followButton: {
+        backgroundColor: Colors.primary,
+        borderRadius: 8,
+        height: 40,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: Spacing.sm,
+    },
+    unfollowButton: {
+        backgroundColor: Colors.background,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    followButtonText: {
+        color: Colors.white,
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    unfollowButtonText: {
+        color: Colors.text,
     },
     tabBar: {
         flexDirection: 'row',
@@ -251,4 +263,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ProfileScreen;
+export default UserProfileScreen;

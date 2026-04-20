@@ -3,8 +3,12 @@ import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, SafeAreaView
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { Heart, MessageCircle, Share2, MoreVertical, Send, X } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 const FeedScreen = () => {
+    const navigation = useNavigation<any>();
+    const { user: currentUser } = useAuth();
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -104,13 +108,22 @@ const FeedScreen = () => {
         <View style={styles.postCard}>
             {/* Header */}
             <View style={styles.postHeader}>
-                <View style={styles.userInfo}>
-                    <Image
-                        source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/50' }}
-                        style={styles.avatar}
-                    />
-                    <Text style={styles.username}>{item.userId?.username}</Text>
-                </View>
+            <TouchableOpacity 
+                style={styles.userInfo} 
+                onPress={() => {
+                    if (item.userId?._id === currentUser?._id) {
+                        navigation.navigate('Profile');
+                    } else {
+                        navigation.navigate('UserProfile', { userId: item.userId?._id });
+                    }
+                }}
+            >
+                <Image
+                    source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/50' }}
+                    style={styles.avatar}
+                />
+                <Text style={styles.username}>{item.userId?.username}</Text>
+            </TouchableOpacity>
                 <TouchableOpacity>
                     <MoreVertical size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
@@ -206,15 +219,18 @@ const FeedScreen = () => {
                                 data={comments}
                                 keyExtractor={(item) => item._id}
                                 style={styles.commentsList}
-                                renderItem={({ item }) => (
-                                    <View style={styles.commentItem}>
-                                        <Image source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/40' }} style={styles.commentAvatar} />
-                                        <View style={styles.commentTextContainer}>
-                                            <Text style={styles.commentUser}>{item.userId?.username}</Text>
-                                            <Text style={styles.commentText}>{item.comment}</Text>
+                                renderItem={({ item }) => {
+                                    const isOwnComment = item.userId?._id === currentUser?._id;
+                                    return (
+                                        <View style={[styles.commentItem, isOwnComment && styles.ownCommentItem]}>
+                                            <Image source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/40' }} style={styles.commentAvatar} />
+                                            <View style={[styles.commentTextContainer, isOwnComment && styles.ownCommentTextContainer]}>
+                                                <Text style={styles.commentUser}>{item.userId?.username}</Text>
+                                                <Text style={styles.commentText}>{item.comment}</Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                )}
+                                    );
+                                }}
                                 ListEmptyComponent={
                                     <Text style={styles.emptyComments}>No comments yet. Start the conversation!</Text>
                                 }
@@ -411,6 +427,15 @@ const styles = StyleSheet.create({
     },
     sendButton: {
         padding: 4,
+    },
+    ownCommentItem: {
+        flexDirection: 'row-reverse',
+    },
+    ownCommentTextContainer: {
+        backgroundColor: Colors.lightBlue,
+        borderBottomRightRadius: 2,
+        marginLeft: 0,
+        marginRight: Spacing.sm,
     },
 });
 

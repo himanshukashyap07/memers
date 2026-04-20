@@ -7,6 +7,11 @@ import { View, ActivityIndicator } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 
+import SettingsScreen from '../screens/Main/SettingsScreen';
+import UserProfileScreen from '../screens/Main/UserProfileScreen';
+import EditPostScreen from '../screens/Main/EditPostScreen';
+import FollowersFollowingScreen from '../screens/Main/FollowersFollowingScreen';
+
 const Stack = createNativeStackNavigator();
 
 const Navigation = () => {
@@ -24,9 +29,15 @@ const Navigation = () => {
         <NavigationContainer>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {user ? (
-                    <Stack.Screen name="Main">
-                        {(props) => <MainTabs {...props} userRole={user.role} />}
-                    </Stack.Screen>
+                    <>
+                        <Stack.Screen name="MainTabs">
+                            {(props) => <MainTabs {...props} userRole={user.role} />}
+                        </Stack.Screen>
+                        <Stack.Screen name="Settings" component={SettingsScreen} />
+                        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+                        <Stack.Screen name="EditPost" component={EditPostScreen} />
+                        <Stack.Screen name="FollowersFollowing" component={FollowersFollowingScreen} />
+                    </>
                 ) : (
                     <Stack.Screen name="Auth" component={AuthStack} />
                 )}
