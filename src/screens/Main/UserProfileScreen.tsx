@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { ChevronLeft, Grid, User as UserIcon, UserPlus, UserMinus } from 'lucide-react-native';
+import UserAvatar from '../../components/UserAvatar';
 
 const UserProfileScreen = ({ route, navigation }: any) => {
     const { userId } = route.params;
@@ -79,9 +80,11 @@ const UserProfileScreen = ({ route, navigation }: any) => {
 
             <View style={styles.profileHeader}>
                 <View style={styles.profileInfo}>
-                    <Image 
-                        source={{ uri: user?.avatar === 'guestImage' ? 'https://via.placeholder.com/100' : user?.avatar }} 
-                        style={styles.largeAvatar} 
+                    <UserAvatar
+                        avatar={user?.avatar}
+                        username={user?.username}
+                        size={80}
+                        style={styles.largeAvatar}
                     />
                     <View style={styles.statsContainer}>
                         <View style={styles.statBox}>

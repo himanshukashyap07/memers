@@ -6,6 +6,7 @@ import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { Settings, Grid, LayoutDashboard } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
+import UserAvatar from '../../components/UserAvatar';
 
 const ProfileScreen = ({ navigation }: any) => {
     const { logout } = useAuth();
@@ -100,9 +101,11 @@ const ProfileScreen = ({ navigation }: any) => {
                 </View>
 
                 <View style={styles.profileInfo}>
-                    <Image 
-                        source={{ uri: user?.avatar === 'guestImage' ? 'https://via.placeholder.com/100' : user?.avatar }} 
-                        style={styles.largeAvatar} 
+                    <UserAvatar
+                        avatar={user?.avatar}
+                        username={user?.username}
+                        size={80}
+                        style={styles.largeAvatar}
                     />
                     <View style={styles.statsContainer}>
                         <View style={styles.statBox}>

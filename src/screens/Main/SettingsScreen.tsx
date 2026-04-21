@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { ChevronLeft, Camera, Lock, User, LogOut } from 'lucide-react-native';
+import UserAvatar from '../../components/UserAvatar';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../../services/api';
 
@@ -118,9 +119,11 @@ const SettingsScreen = ({ navigation }: any) => {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Profile</Text>
                     <View style={styles.avatarContainer}>
-                        <Image 
-                            source={{ uri: user?.avatar === 'guestImage' ? 'https://via.placeholder.com/100' : user?.avatar }} 
-                            style={styles.avatar} 
+                        <UserAvatar
+                            avatar={user?.avatar}
+                            username={user?.username}
+                            size={100}
+                            style={styles.avatar}
                         />
                         <TouchableOpacity style={styles.cameraButton} onPress={pickImage} disabled={loading}>
                             {loading ? <ActivityIndicator size="small" color={Colors.white} /> : <Camera size={20} color={Colors.white} />}

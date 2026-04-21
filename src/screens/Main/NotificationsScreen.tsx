@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { Bell, Heart, MessageCircle, UserPlus, Reply } from 'lucide-react-native';
+import UserAvatar from '../../components/UserAvatar';
 
 const NotificationsScreen = ({ navigation }: any) => {
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -69,7 +70,12 @@ const NotificationsScreen = ({ navigation }: any) => {
             onPress={() => handleNotificationPress(item)}
         >
             <View style={styles.avatarContainer}>
-                <Image source={{ uri: item.sender.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
+                <UserAvatar
+                    avatar={item.sender.avatar}
+                    username={item.sender.username}
+                    size={50}
+                    style={styles.avatar}
+                />
                 <View style={styles.iconOverlay}>{getIcon(item.type)}</View>
             </View>
             <View style={styles.textContainer}>

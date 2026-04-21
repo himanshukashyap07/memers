@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { ChevronLeft } from 'lucide-react-native';
+import UserAvatar from '../../components/UserAvatar';
 import { useAuth } from '../../context/AuthContext';
 
 const FollowersFollowingScreen = ({ route, navigation }: any) => {
@@ -64,7 +65,12 @@ const FollowersFollowingScreen = ({ route, navigation }: any) => {
                     }
                 }}
             >
-                <Image source={{ uri: item?.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
+                <UserAvatar
+                    avatar={item?.avatar}
+                    username={item?.username}
+                    size={50}
+                    style={styles.avatar}
+                />
                 <Text style={styles.username}>{item?.username}</Text>
             </TouchableOpacity>
 

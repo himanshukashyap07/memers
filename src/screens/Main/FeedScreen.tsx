@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { Heart, MessageCircle, Share2, MoreVertical, Send, X } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import UserAvatar from '../../components/UserAvatar';
 
 const FeedScreen = () => {
     const website_Link = 'https://memers.in'
@@ -157,8 +158,10 @@ const FeedScreen = () => {
                         }
                     }}
                 >
-                    <Image
-                        source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/50' }}
+                    <UserAvatar
+                        avatar={item.userId?.avatar}
+                        username={item.userId?.username}
+                        size={36}
                         style={styles.avatar}
                     />
                     <Text style={styles.username}>{item.userId?.username}</Text>
@@ -227,7 +230,12 @@ const FeedScreen = () => {
                                 }
                             }}
                         >
-                            <Image source={{ uri: user.avatar || 'https://via.placeholder.com/60' }} style={styles.topUserAvatar} />
+                            <UserAvatar
+                                avatar={user.avatar}
+                                username={user.username}
+                                size={64}
+                                style={styles.topUserAvatar}
+                            />
                             <Text style={styles.topUserName} numberOfLines={1}>{user.username}</Text>
                             <Text style={styles.topUserFollowers}>{user.followersCount} followers</Text>
                         </TouchableOpacity>
@@ -292,7 +300,12 @@ const FeedScreen = () => {
                                     const isOwnComment = item.userId?._id === currentUser?._id;
                                     return (
                                         <View style={[styles.commentItem, isOwnComment && styles.ownCommentItem]}>
-                                            <Image source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/40' }} style={styles.commentAvatar} />
+                                            <UserAvatar
+                                                avatar={item.userId?.avatar}
+                                                username={item.userId?.username}
+                                                size={32}
+                                                style={styles.commentAvatar}
+                                            />
                                             <View style={[styles.commentTextContainer, isOwnComment && styles.ownCommentTextContainer]}>
                                                 <Text style={styles.commentUser}>{item.userId?.username}</Text>
                                                 <Text style={styles.commentText}>{item.comment}</Text>

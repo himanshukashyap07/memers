@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { Trash2, UserMinus, UserCheck, LayoutDashboard, RefreshCw } from 'lucide-react-native';
+import UserAvatar from '../../components/UserAvatar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminBottomBar from '../../components/AdminBottomBar';
 
@@ -113,7 +114,12 @@ const AdminScreen = ({ navigation }: any) => {
                 return (
                     <View style={styles.itemRow}>
                         <View style={styles.itemMain}>
-                            <Image source={{ uri: item.avatar || 'https://via.placeholder.com/50' }} style={styles.itemAvatar} />
+                            <UserAvatar
+                                avatar={item.avatar}
+                                username={item.username}
+                                size={40}
+                                style={styles.itemAvatar}
+                            />
                             <View>
                                 <Text style={styles.itemTitle}>{item.username}</Text>
                                 <Text style={styles.itemSub}>{item.email}</Text>
