@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import UserAvatar from '../../components/UserAvatar';
 
 const FeedScreen = () => {
-    const website_Link = 'https://memers.in'
+    const website_Link = 'https://memers-web-app.vercel.app'
     const navigation = useNavigation<any>();
     const { user: currentUser } = useAuth();
     const [posts, setPosts] = useState<any[]>([]);
