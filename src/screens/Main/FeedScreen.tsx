@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
 const FeedScreen = () => {
+    const website_Link = 'https://memers.in'
     const navigation = useNavigation<any>();
     const { user: currentUser } = useAuth();
     const [posts, setPosts] = useState<any[]>([]);
@@ -20,6 +21,9 @@ const FeedScreen = () => {
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
     const [commentsLoading, setCommentsLoading] = useState(false);
+
+    // Top users state
+    const [topUsers, setTopUsers] = useState<any[]>([]);
 
     const fetchPosts = async () => {
         try {
@@ -35,14 +39,48 @@ const FeedScreen = () => {
         }
     };
 
+    const fetchTopUsers = async () => {
+        try {
+            const response = await api.get('/user/topFamousUsers');
+            if (response.data.success) {
+                setTopUsers(response.data.data);
+            }
+        } catch (error) {
+            console.error('Fetch top users error:', error);
+        }
+    };
+
     useEffect(() => {
         fetchPosts();
+        fetchTopUsers();
     }, []);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchPosts();
+        fetchTopUsers();
     }, []);
+
+    const handleShare = async (item: any, user: any) => {
+        try {
+            const result = await Share.share({
+                message: `${user.username} shared a meme with you. Check out this hilarious meme from Memers! 😂  Join the community to see more trending memes: ${item.url}
+                Download app from our website ${website_Link}`
+            });
+            if (result.action === Share.sharedAction) {
+                await api.post('/post/incrementShareCount', { postId: item._id });
+                // Optimistic update
+                setPosts(currentPosts => currentPosts.map(post => {
+                    if (post._id === item._id) {
+                        return { ...post, sharesCount: (post.sharesCount || 0) + 1 };
+                    }
+                    return post;
+                }));
+            }
+        } catch (error) {
+            console.error('Share error:', error);
+        }
+    };
 
     const handleLike = async (postId: string) => {
         try {
@@ -109,22 +147,22 @@ const FeedScreen = () => {
         <View style={styles.postCard}>
             {/* Header */}
             <View style={styles.postHeader}>
-            <TouchableOpacity 
-                style={styles.userInfo} 
-                onPress={() => {
-                    if (item.userId?._id === currentUser?._id) {
-                        navigation.navigate('Profile');
-                    } else {
-                        navigation.navigate('UserProfile', { userId: item.userId?._id });
-                    }
-                }}
-            >
-                <Image
-                    source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/50' }}
-                    style={styles.avatar}
-                />
-                <Text style={styles.username}>{item.userId?.username}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.userInfo}
+                    onPress={() => {
+                        if (item.userId?._id === currentUser?._id) {
+                            navigation.navigate('Profile');
+                        } else {
+                            navigation.navigate('UserProfile', { userId: item.userId?._id });
+                        }
+                    }}
+                >
+                    <Image
+                        source={{ uri: item.userId?.avatar || 'https://via.placeholder.com/50' }}
+                        style={styles.avatar}
+                    />
+                    <Text style={styles.username}>{item.userId?.username}</Text>
+                </TouchableOpacity>
                 <TouchableOpacity>
                     <MoreVertical size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
@@ -148,8 +186,9 @@ const FeedScreen = () => {
                         <MessageCircle size={24} color={Colors.text} />
                         {item.commentsCount > 0 && <Text style={styles.actionCount}>{item.commentsCount}</Text>}
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => handleShare(item, currentUser)}>
                         <Share2 size={24} color={Colors.text} />
+                        {(item.sharesCount > 0) && <Text style={styles.actionCount}>{item.sharesCount}</Text>}
                     </TouchableOpacity>
                 </View>
             </View>
@@ -170,6 +209,34 @@ const FeedScreen = () => {
         </View>
     );
 
+    const renderTopUsers = () => {
+        if (!topUsers || topUsers.length === 0) return null;
+        return (
+            <View style={styles.topUsersContainer}>
+                <Text style={styles.topUsersTitle}>Top Famous Memers</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topUsersScroll}>
+                    {topUsers.map((user) => (
+                        <TouchableOpacity
+                            key={user._id}
+                            style={styles.topUserCard}
+                            onPress={() => {
+                                if (user._id === currentUser?._id) {
+                                    navigation.navigate('Profile');
+                                } else {
+                                    navigation.navigate('UserProfile', { userId: user._id });
+                                }
+                            }}
+                        >
+                            <Image source={{ uri: user.avatar || 'https://via.placeholder.com/60' }} style={styles.topUserAvatar} />
+                            <Text style={styles.topUserName} numberOfLines={1}>{user.username}</Text>
+                            <Text style={styles.topUserFollowers}>{user.followersCount} followers</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+        );
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -187,6 +254,7 @@ const FeedScreen = () => {
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
+                ListHeaderComponent={renderTopUsers}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>No memes yet. Be the first to post!</Text>
@@ -349,6 +417,47 @@ const styles = StyleSheet.create({
         marginTop: 100,
     },
     emptyText: {
+        color: Colors.textSecondary,
+    },
+    // Top users styles
+    topUsersContainer: {
+        backgroundColor: Colors.white,
+        paddingVertical: Spacing.md,
+        marginBottom: Spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    topUsersTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text,
+        marginLeft: Spacing.md,
+        marginBottom: Spacing.md,
+    },
+    topUsersScroll: {
+        paddingHorizontal: Spacing.md,
+    },
+    topUserCard: {
+        alignItems: 'center',
+        marginRight: Spacing.lg,
+        width: 80,
+    },
+    topUserAvatar: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        marginBottom: Spacing.sm,
+        borderWidth: 2,
+        borderColor: Colors.primary,
+    },
+    topUserName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.text,
+        textAlign: 'center',
+    },
+    topUserFollowers: {
+        fontSize: 10,
         color: Colors.textSecondary,
     },
     // Modal Styles

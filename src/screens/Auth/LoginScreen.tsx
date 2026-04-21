@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator, Image } from 'react-native';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -37,7 +37,12 @@ const LoginScreen = ({ navigation }: any) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-                <Text style={styles.title}>Memers</Text>
+                <View style={styles.logoContainer}>
+                    <Image 
+                        source={require('../../../public/images/Logo.png')} 
+                        style={styles.logo} 
+                    />
+                </View>
                 <Text style={styles.subtitle}>Welcome back!</Text>
 
                 <View style={styles.form}>
@@ -86,11 +91,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: Spacing.lg,
     },
-    title: {
-        fontSize: 40,
-        fontWeight: '900',
-        color: Colors.primary,
-        textAlign: 'center',
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+    },
+    logo: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        
     },
     subtitle: {
         fontSize: 18,

@@ -4,7 +4,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, ActivityIndi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
-import { Settings, Grid, User as UserIcon, LayoutDashboard } from 'lucide-react-native';
+import { Settings, Grid, LayoutDashboard } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileScreen = ({ navigation }: any) => {
@@ -130,9 +130,6 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={styles.tabBar}>
                 <TouchableOpacity style={styles.tabItem}>
                     <Grid size={24} color={Colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.tabItem}>
-                    <UserIcon size={24} color={Colors.textSecondary} />
                 </TouchableOpacity>
             </View>
 

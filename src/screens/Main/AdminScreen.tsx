@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/colors';
 import api from '../../services/api';
-import { Trash2, UserMinus, UserCheck, LayoutDashboard } from 'lucide-react-native';
+import { Trash2, UserMinus, UserCheck, LayoutDashboard, RefreshCw } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminBottomBar from '../../components/AdminBottomBar';
 
@@ -95,6 +95,18 @@ const AdminScreen = ({ navigation }: any) => {
         }
     };
 
+    const handleRefreshFamous = async () => {
+        try {
+            const response = await api.get('/user/topFamousUsers');
+            if (response.data.success) {
+                Alert.alert('Success', 'Top Famous Users refreshed successfully!');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to refresh famous users');
+            console.error(error);
+        }
+    };
+
     const renderItem = ({ item }: { item: any }) => {
         switch (activeTab) {
             case 'users':
@@ -176,8 +188,14 @@ const AdminScreen = ({ navigation }: any) => {
     return (
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <View style={styles.header}>
-                <LayoutDashboard size={24} color={Colors.primary} style={{ marginRight: 10 }} />
-                <Text style={styles.headerTitle}>Admin Panel</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <LayoutDashboard size={24} color={Colors.primary} style={{ marginRight: 10 }} />
+                    <Text style={styles.headerTitle}>Admin Panel</Text>
+                </View>
+                <TouchableOpacity onPress={handleRefreshFamous} style={styles.refreshFamousBtn}>
+                    <RefreshCw size={18} color={Colors.white} />
+                    <Text style={styles.refreshFamousText}>Refresh Top</Text>
+                </TouchableOpacity>
             </View>
 
             {loading ? (
@@ -214,6 +232,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         padding: Spacing.md,
         borderBottomWidth: 1,
         borderBottomColor: Colors.border,
@@ -222,6 +241,20 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: Colors.text,
+    },
+    refreshFamousBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.primary,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    refreshFamousText: {
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginLeft: 4,
     },
     centerContainer: {
         flex: 1,

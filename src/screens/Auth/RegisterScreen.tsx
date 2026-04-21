@@ -64,7 +64,12 @@ const RegisterScreen = ({ navigation }: any) => {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
-                <Text style={styles.title}>Join Memers</Text>
+                <View style={styles.logoContainer}>
+                    <Image 
+                        source={require('../../../public/images/Logo.png')} 
+                        style={styles.logo} 
+                    />
+                </View>
                 <Text style={styles.subtitle}>Create an account to start sharing!</Text>
 
                 <View style={styles.form}>
@@ -135,11 +140,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: Spacing.lg,
     },
-    title: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: Colors.primary,
-        textAlign: 'center',
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+    },
+    logo: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
     },
     subtitle: {
         fontSize: 16,
